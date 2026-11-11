@@ -1,0 +1,111 @@
+โครงสร้างโฟลเดอร์โปรเจกต์ Godot (Updated)
+==========================================
+
+โครงสร้างนี้จัดแยกข้อมูล เกม ทรัพยากร ระบบ และส่วนประกอบ UI เพื่อให้ดูแลและขยายโครงการได้ง่าย
+ใช้แนวทาง Domain-Driven Design: แยกตามโดเมนหลัก ไม่รวมทุกอย่างใต้ "scenes/"
+
+addons/
+- โฟลเดอร์เก็บส่วนเสริมหรือปลั๊กอินของบุคคลภายนอกที่ติดตั้งในโปรเจกต์
+
+autoload/                          # Global Singletons (โหลดอัตโนมัติตอนเริ่มเกม)
+- event_bus.gd: Signal Bus กลางสำหรับส่งเหตุการณ์ระหว่างระบบ (เปลี่ยนฉาก, เสียง, events)
+- game_manager.gd: ผู้จัดการสถานะเกมและการบันทึก/โหลดข้อมูลหลัก
+
+assets/                            # Raw Assets (ไฟล์ต้นฉบับ ก่อน import)
+- audio/
+  - ambience/: เสียงสภาพแวดล้อม
+  - music/: เพลงประกอบ
+  - sfx/: เสียงเอฟเฟกต์
+- fonts/: ฟอนต์ที่ใช้ในเกมและ UI
+- icons/: ไอคอนทั่วไป
+- shaders/: Shader ที่ใช้ร่วมกันหลายระบบ
+- textures/
+  - 2d/: Texture 2D
+  - 3d/: Texture 3D
+  - ui/: Texture สำหรับ UI
+
+common/                            # Reusable Building Blocks (Composition over Inheritance)
+- components/                      # Entity Components (นำไป attach ที่ entities)
+  - combat/: Health, Hitbox, ระบบต่อสู้ร่วม
+  - movement/: การเคลื่อนที่แบบกริดหรือความเร็ว
+  - sensors/: ตัวตรวจจับ (Grid Raycast Sensor, etc.)
+  - visuals/: ระบบภาพเคลื่อนไหวตามทิศทาง
+- effects/: เอฟเฟกต์ภาพและเกมเพลย์ที่ใช้ร่วมกัน
+- services/                        # Global Services (Singleton-like แต่ไม่ใช่ autoload)
+  - object_pool.gd: Object Pooling
+  - save_load.gd: บันทึก/โหลดเกม
+  - scene_transition.gd: จัดการเปลี่ยนฉาก
+  - settings.gd: ตั้งค่าเกม
+- ui/                              # Reusable UI Widgets (Components)
+  - button.gd, slider.gd, tooltip.gd, etc.
+- utils/: ฟังก์ชันคณิตศาสตร์และ Utility แบบ Pure Script/RefCounted
+
+entities/                          # Entity Scenes (ถูก instance เข้าไปใน levels)
+- player/: Actor Scene Tree ของผู้เล่น + Game-specific Components
+- enemies/
+  - base/: โครงสร้างพื้นฐานร่วมของศัตรู (Base classes)
+- interactables/: วัตถุโต้ตอบได้ (ประตู, หีบสมบัติ, สวิตช์)
+- items/: ไอเทมและ Collectibles
+- projectiles/: กระสุน, เลเซอร์, วัตถุยิง
+
+levels/                            # World/Level Scenes (.tscn files - ฉากจริงที่โหลดเล่น)
+- base/                            # Base Templates & Entry Point
+  - main.tscn: **ENTRY POINT** (ตั้งเป็น main_scene ใน project.godot)
+  - main.gd: Main entry script
+  - level_template.tscn: เทมเพลตโครงสร้างฉากพื้นฐาน
+- environments/                    # Actual Playable Levels
+  - level_01.tscn, level_02.tscn, ...
+- test/                            # Test Sandboxes (Development only)
+  - combat_test.tscn, movement_test.tscn, ...
+
+resources/                         # Godot Resource Files (.tres - ข้อมูล config/data)
+- items/: ข้อมูลไอเทม (ItemResource)
+- stats/: สถิติตัวละคร/ศัตรู (StatResource)
+- themes/: UI Themes และ Font settings
+
+systems/                           # Global Game Systems (Services - ระบบกลางของเกม)
+- audio/: ระบบเสียง (SFX Pool, Positional Audio)
+- combat/: Damage processing, Collision, Combat effects
+- navigation/: Pathfinding, AI Navigation
+- spawning/: Enemy waves, Spawners
+
+translations/                      # Localization (i18n)
+- locales/
+  - en.po, th.po (หรือ localization.csv)
+- translation_server_setup.gd: ตัวช่วยจัดการภาษา
+
+ui/                                # UI Scenes (ฉาก UI - ต่างจาก common/ui/ ที่เป็น widgets)
+- hud/                             # In-game HUD (Health bar, Score, Mini-map)
+  - hud.tscn, hud.gd
+- menus/                           # Main Menu, Pause, Settings
+  - main_menu.tscn, pause_menu.tscn, settings_menu.tscn
+- screens/                         # System Screens (Full-screen overlays)
+  - loading_screen.tscn, game_over.tscn, results_screen.tscn
+
+
+KEY ARCHITECTURE DECISIONS:
+===========================
+
+1. ui/ และ systems/ อยู่ที่ ROOT LEVEL (ไม่ใต้ scenes/)
+   - ui/ = UI Scenes (HUD, Menus, Screens) - ใช้ร่วมทุก level
+   - systems/ = Global Game Systems - ให้บริการทุก entity/level
+   - common/ui/ = Reusable Widgets (Button, Slider) - ต่างจาก ui/ scenes
+
+2. main.tscn / main.gd วางที่ levels/base/
+   - levels/base/ = "เทมเพลตโครงสร้างฉากพื้นฐาน" ตามเอกสารเดิม
+   - ตั้งใน project.godot: run/main_scene = "res://levels/base/main.tscn"
+
+3. levels/ = World Scenes (ฉากโลก/ระดับจริงที่โหลดเล่น)
+   - environments/ = ระดับจริงของเกม
+   - test/ = ห้องทดสอบ dev only
+   - base/ = Template + Entry point
+
+4. entities/ = Instanced Entities (Player, Enemies, Items)
+   - ถูก instance เข้าไปใน level scenes
+   - ไม่ได้โหลดเป็น main scene โดยตรง
+
+5. common/ = Building Blocks แบบ Composition
+   - components/ = Entity components (Health, Movement, Sensors)
+   - services/ = Global services (Pool, Save, Transition)
+   - ui/ = Widget components (Button, Tooltip)
+   - utils/ = Pure functions
